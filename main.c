@@ -19,12 +19,11 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
-
+#include <stdlib.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,6 +41,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
@@ -51,6 +52,7 @@ UART_HandleTypeDef huart2;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_ADC1_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -68,8 +70,10 @@ static void MX_USART2_UART_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-char buf[64]; // 64 bits of Buffer character
-int count=0;
+	char buf[64]; // 64 bits of Buffer character
+	int count=0;
+	int ADC_value=0;
+	int ADC_value_mV=0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -90,55 +94,53 @@ int count=0;
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_ADC1_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-//sprintf(buf,"LED Blinking is started...\n"); // sprintf command within the Buffer of 64 bits.
-//HAL_UART_Transmit(&huart2, buf, strlen(buf), 0xff);
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
-  {
-    /* USER CODE END WHILE */
+    {
+	  /* USER CODE END WHILE */
+  	  count++;
+  	  HAL_ADC_Start(&hadc1);
+  	  ADC_value = HAL_ADC_GetValue(&hadc1);
+  	  ADC_value_mV = ADC_value * 0.8059;
+
+  	  if(count>10){
+  		// LED OFF
+  		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET);
+  		  sprintf(buf,"ADC_Value(mV): %d; Counter: %d\r\n",ADC_value_mV, count);
+  		  HAL_UART_Transmit(&huart2, buf, strlen(buf), 0xff);
+  		  HAL_Delay(333);
+
+
+  		// LED OFF
+  		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET);
+  		  sprintf(buf,"Green LED Blinking turned off...\r\n");
+  		  HAL_UART_Transmit(&huart2, buf, strlen(buf), 0xff);
+  		  HAL_Delay(333);
+  	  }
+
+  	  else{
+  		// LED OFF
+  		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+  		  sprintf(buf," LED Blinking is started in loop number: %d\r\n",count);
+  		  HAL_UART_Transmit(&huart2, buf, strlen(buf), 0xff);
+  		  HAL_Delay(333);
+
+  		  // LED OFF
+  		   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+  		   sprintf(buf," LED Blinking turned off...\r\n");
+  		   HAL_UART_Transmit(&huart2, buf, strlen(buf), 0xff);
+  		   HAL_Delay(333);
+  	  }
 
     /* USER CODE BEGIN 3 */
-	  	  // LED ON
-	  count++;
-
-	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET);
-      sprintf(buf,"Green LED Blinking is started in loop number: %d\r\n",count);
-      HAL_UART_Transmit(&huart2, buf, strlen(buf), 0xff);
-	  HAL_Delay(333);
-
-	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
-	  sprintf(buf,"White LED Blinking is started...\r\n");
-      HAL_UART_Transmit(&huart2, buf, strlen(buf), 0xff);
-	  HAL_Delay(333);
-
-	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_9, GPIO_PIN_SET);
-	  sprintf(buf,"Blue LED Blinking is started...\r\n");
-      HAL_UART_Transmit(&huart2, buf, strlen(buf), 0xff);
-	  HAL_Delay(333);
-
-	  // LED OFF
-	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET);
-	  sprintf(buf,"Green LED Blinking turned off...\r\n");
-	  HAL_UART_Transmit(&huart2, buf, strlen(buf), 0xff);
-	  HAL_Delay(333);
-
-	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
-	  sprintf(buf,"white LED Blinking turned off...\r\n");
-	  HAL_UART_Transmit(&huart2, buf, strlen(buf), 0xff);
-	  HAL_Delay(333);
-
-	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_9, GPIO_PIN_RESET);
-	  sprintf(buf,"Blue LED Blinking turned off...\r\n");
-	  HAL_UART_Transmit(&huart2, buf, strlen(buf), 0xff);
-	  HAL_Delay(333);
-	  }
-
+  }
   /* USER CODE END 3 */
 }
 
@@ -159,14 +161,10 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 4;
-  RCC_OscInitStruct.PLL.PLLN = 72;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -176,15 +174,67 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -234,10 +284,16 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PA7 PA8 PA9 */
-  GPIO_InitStruct.Pin = GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9;
+  /*Configure GPIO pin : PA7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA8 */
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
